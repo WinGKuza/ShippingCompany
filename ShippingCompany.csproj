@@ -124,6 +124,7 @@
     <Compile Include="Classes\MenuControler\Help.cs" />
     <Compile Include="Classes\MenuControler\IntermediateTables.cs" />
     <Compile Include="Classes\MenuControler\MainTables.cs" />
+    <Compile Include="Classes\MenuControler\MenuActionExecutor.cs" />
     <Compile Include="Classes\MenuControler\Various.cs" />
     <Compile Include="Windows\EditPasswordWindow.xaml.cs">
       <DependentUpon>EditPasswordWindow.xaml</DependentUpon>
@@ -167,9 +168,7 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Dictionaries\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="packages\Microsoft.Extensions.Logging.Abstractions.6.0.0\build\Microsoft.Extensions.Logging.Abstractions.targets" Condition="Exists('packages\Microsoft.Extensions.Logging.Abstractions.6.0.0\build\Microsoft.Extensions.Logging.Abstractions.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

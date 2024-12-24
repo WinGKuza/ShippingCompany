@@ -8,5 +8,17 @@ namespace ShippingCompany.Classes.MenuControler
 {
     internal class Various
     {
+        public void ChangeAccount(MainWindow mainWindow)
+        { 
+            LoginWindow loginWindow = new LoginWindow();
+            loginWindow.Show();
+            mainWindow.Close();
+        }
+
+        public void ChangePassword(MainWindow mainWindow)
+        {
+            EditPasswordWindow editPasswordWindow = new EditPasswordWindow(mainWindow.Username);
+            editPasswordWindow.ShowDialog();
+        }
     }
 }

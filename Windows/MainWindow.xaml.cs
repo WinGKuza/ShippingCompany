@@ -37,7 +37,7 @@ namespace ShippingCompany
             var rootMenuItems = menuItems.Where(m => m.ParentId == 0).ToList();
             foreach (var rootItem in rootMenuItems)
             {
-                var menuItem = CreateMenuItem(rootItem);
+                var menuItem = CreateMenuItem(rootItem, menuItems.Any(m => m.ParentId == rootItem.Id));
 
                 // Добавление дочерних элементов
                 AddChildMenuItems(menuItem, menuItems, rootItem.Id);
@@ -74,7 +74,7 @@ namespace ShippingCompany
                     }).ToList();
         }
 
-        private MenuItem CreateMenuItem(MenuItemData itemData)
+        private MenuItem CreateMenuItem(MenuItemData itemData, bool hasChildren)
         {
             var menuItem = new MenuItem
             {
@@ -82,8 +82,8 @@ namespace ShippingCompany
                 Tag = itemData.FunctionName
             };
 
-            // Привязываем обработчик клика, если есть привязанная функция
-            if (!string.IsNullOrEmpty(itemData.FunctionName))
+            // Добавляем обработчик только для элементов без дочерних элементов
+            if (!hasChildren && !string.IsNullOrEmpty(itemData.FunctionName))
             {
                 menuItem.Click += (sender, args) => MenuItem_Click(itemData.FunctionName);
             }
@@ -91,12 +91,14 @@ namespace ShippingCompany
             return menuItem;
         }
 
+
         private void AddChildMenuItems(MenuItem parentMenuItem, List<MenuItemData> menuItems, int parentId)
         {
             var childItems = menuItems.Where(m => m.ParentId == parentId).ToList();
             foreach (var childItem in childItems)
             {
-                var menuItem = CreateMenuItem(childItem);
+                bool hasChildren = menuItems.Any(m => m.ParentId == childItem.Id);
+                var menuItem = CreateMenuItem(childItem, hasChildren);
                 parentMenuItem.Items.Add(menuItem);
 
                 // Рекурсивное добавление дочерних элементов
@@ -104,10 +106,10 @@ namespace ShippingCompany
             }
         }
 
+
         private void MenuItem_Click(string functionName)
         {
-            MessageBox.Show($"Функция: {functionName}", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
-            // Здесь можно реализовать вызов соответствующих методов или переходов
+            MenuActionExecutor.Execute(functionName, this);
         }
 
         // Класс для хранения данных об элементах меню

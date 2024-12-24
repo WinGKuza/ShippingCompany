@@ -39,7 +39,7 @@ namespace ShippingCompany.Database
             }
         }
 
-        public NpgsqlConnection GetConnection()
+        private NpgsqlConnection GetConnection()
         {
             return new NpgsqlConnection(_connectionString);
         }
