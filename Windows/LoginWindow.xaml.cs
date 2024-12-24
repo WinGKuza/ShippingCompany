@@ -37,14 +37,7 @@ namespace ShippingCompany
             {
                 if (DatabaseManager.Instance.TestConnection())
                 {
-                    string query = "SELECT * FROM app_user WHERE login = @login AND password_hash = @password";
-                    DataTable dataTable = DatabaseManager.Instance.ExecuteQuery(
-                        query,
-                        new NpgsqlParameter("@login", login),
-                        new NpgsqlParameter("@password", Hash.GetHash(password))
-                    );
-
-                    if (dataTable != null && dataTable.Rows.Count > 0)
+                    if (LoginLogic.TryToLogin(login, password))
                     {
                         MainWindow mainWindow = new MainWindow(login);
                         mainWindow.Show();

@@ -1,5 +1,8 @@
-﻿using System;
+﻿using Npgsql;
+using ShippingCompany.Database;
+using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Security.Principal;
 using System.Text;
@@ -10,14 +13,17 @@ namespace ShippingCompany.Classes.Login
 {
     internal class LoginLogic
     {
-        internal static bool TryToLogin(string login, string password, List<User> accounts)
+        internal static bool TryToLogin(string login, string password)
         {
-            if (string.IsNullOrEmpty(login) || string.IsNullOrEmpty(password) || accounts == null) return false;
-            foreach (User user in accounts)
-            {
-                if (user.Login == login && user.Password == Hash.GetHash(password)) return true;
-            }
-            //MessageBox.Show("Неверный логин или пароль.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            string query = "SELECT * FROM app_user WHERE login = @login AND password_hash = @password";
+            DataTable dataTable = DatabaseManager.Instance.ExecuteQuery(
+                query,
+                new NpgsqlParameter("@login", login),
+                new NpgsqlParameter("@password", Hash.GetHash(password))
+            );
+
+            if (dataTable != null && dataTable.Rows.Count > 0) return true;
+            
             return false;
         }
     }
