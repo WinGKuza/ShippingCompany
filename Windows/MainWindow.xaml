@@ -7,9 +7,13 @@
         mc:Ignorable="d"
         Title="Database Management" Height="600" Width="800" WindowStartupLocation="CenterScreen">
     <DockPanel>
-        <Menu DockPanel.Dock="Top">
+        <!-- Меню сверху -->
+        <Menu x:Name="MainMenu" DockPanel.Dock="Top">
         </Menu>
 
-        <DataGrid Name="DataGridView" Margin="10" AutoGenerateColumns="True" />
+        <!-- Остальной контент окна -->
+        <Grid>
+            <!-- Здесь можно разместить содержимое, которое также масштабируется -->
+        </Grid>
     </DockPanel>
 </Window>
