@@ -125,6 +125,7 @@
     <Compile Include="Classes\MenuControler\IntermediateTables.cs" />
     <Compile Include="Classes\MenuControler\MainTables.cs" />
     <Compile Include="Classes\MenuControler\MenuActionExecutor.cs" />
+    <Compile Include="Classes\MenuControler\TablesWorker.cs" />
     <Compile Include="Classes\MenuControler\Various.cs" />
     <Compile Include="Windows\EditPasswordWindow.xaml.cs">
       <DependentUpon>EditPasswordWindow.xaml</DependentUpon>
