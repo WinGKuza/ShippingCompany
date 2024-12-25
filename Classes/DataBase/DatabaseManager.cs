@@ -95,15 +95,7 @@ namespace ShippingCompany.Database
                     {
                         command.Parameters.AddRange(parameters);
                     }
-                    try
-                    {
-                        return command.ExecuteNonQuery();
-                    }
-                    catch(Exception ex)
-                    {
-                        MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return -1;
-                    }
+                    return command.ExecuteNonQuery();
                 }
             }
         }
@@ -119,15 +111,7 @@ namespace ShippingCompany.Database
                     {
                         command.Parameters.AddRange(parameters);
                     }
-                    try
-                    {
-                        return command.ExecuteScalar();
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return -1;
-                    }
+                    return command.ExecuteScalar();
                 }
             }
         }

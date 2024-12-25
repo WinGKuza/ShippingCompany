@@ -197,16 +197,28 @@ namespace ShippingCompany.Classes.MenuControler
                         try
                         {
                             DataRow newRow = dataTable.Rows[dataTable.Rows.Count - 1];
-                            SaveNewRowToDatabase(tableName, newRow);
-                            MessageBox.Show("Строка успешно добавлена!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
-                            addButton.Content = "➕ Добавить";
-
-                            var saveButton = buttonPanel.Children
-                                .OfType<Button>()
-                                .FirstOrDefault(b => (string)b.Content == "💾 Сохранить");
-                            if (saveButton != null)
+                            bool f = true;
+                            try
                             {
-                                saveButton.IsEnabled = true;
+                                SaveNewRowToDatabase(tableName, newRow);
+                            }
+                            catch (Exception ex)
+                            {
+                                f = false;
+                                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            }
+                            if (f)
+                            {
+                                MessageBox.Show("Строка успешно добавлена!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                                addButton.Content = "➕ Добавить";
+
+                                var saveButton = buttonPanel.Children
+                                    .OfType<Button>()
+                                    .FirstOrDefault(b => (string)b.Content == "💾 Сохранить");
+                                if (saveButton != null)
+                                {
+                                    saveButton.IsEnabled = true;
+                                }
                             }
                         }
                         catch (Exception ex)
@@ -260,29 +272,46 @@ namespace ShippingCompany.Classes.MenuControler
                         if (row.IsNew) // Если строка новая
                         {
                             // Удаляем строку из DataTable
-                            dataTable.Rows.Remove(row.Row);
-
-                            // Меняем текст кнопки "Подтвердить" обратно на "Добавить"
-                            var addButton = mainWindow.MainContent.Children
-                                .OfType<Button>()
-                                .FirstOrDefault(b => (string)b.Content == "✔ Подтвердить");
-                            if (addButton != null)
+                            bool f = true;
+                            try
                             {
-                                addButton.Content = "➕ Добавить";
+                                dataTable.Rows.Remove(row.Row);
                             }
-
-                            // Разблокируем кнопку "Сохранить"
-                            var saveButton = mainWindow.MainContent.Children
-                                .OfType<Button>()
-                                .FirstOrDefault(b => (string)b.Content == "💾 Сохранить");
-                            if (saveButton != null)
+                            catch (Exception ex)
                             {
-                                saveButton.IsEnabled = true;
+                                f = false;
+                                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            }
+                            if (f)
+                            {
+                                // Меняем текст кнопки "Подтвердить" обратно на "Добавить"
+                                var addButton = mainWindow.MainContent.Children
+                                    .OfType<Button>()
+                                    .FirstOrDefault(b => (string)b.Content == "✔ Подтвердить");
+                                if (addButton != null)
+                                {
+                                    addButton.Content = "➕ Добавить";
+                                }
+                                // Разблокируем кнопку "Сохранить"
+                                var saveButton = mainWindow.MainContent.Children
+                                    .OfType<Button>()
+                                    .FirstOrDefault(b => (string)b.Content == "💾 Сохранить");
+                                if (saveButton != null)
+                                {
+                                    saveButton.IsEnabled = true;
+                                }
                             }
                         }
                         else // Если строка существует
                         {
-                            DeleteRowFromDatabase(mainWindow, tableName, row, menuItemName);
+                            try
+                            {
+                                DeleteRowFromDatabase(mainWindow, tableName, row, menuItemName);
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            }
                         }
                     }
                 }
@@ -304,7 +333,14 @@ namespace ShippingCompany.Classes.MenuControler
 
             parameters.Add(new Npgsql.NpgsqlParameter("@id", newRow["id"]));
 
-            DatabaseManager.Instance.ExecuteNonQuery(insertQuery, parameters.ToArray());
+            try
+            {
+                DatabaseManager.Instance.ExecuteNonQuery(insertQuery, parameters.ToArray());
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private static void SaveTableChanges(MainWindow mainWindow, string tableName, DataTable dataTable, string menuItemName)
@@ -321,7 +357,14 @@ namespace ShippingCompany.Classes.MenuControler
 
                     parameters.Add(new Npgsql.NpgsqlParameter("@id", row["id"]));
 
-                    DatabaseManager.Instance.ExecuteNonQuery(updateQuery, parameters.ToArray());
+                    try
+                    {
+                        DatabaseManager.Instance.ExecuteNonQuery(updateQuery, parameters.ToArray());
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
                 }
             }
 
@@ -349,7 +392,14 @@ namespace ShippingCompany.Classes.MenuControler
             var parameters = row.Row.ItemArray.Select((value, index) =>
                 new Npgsql.NpgsqlParameter($"@{row.Row.Table.Columns[index].ColumnName}", value)).ToArray();
 
-            DatabaseManager.Instance.ExecuteNonQuery(deleteQuery, parameters);
+            try
+            {
+                DatabaseManager.Instance.ExecuteNonQuery(deleteQuery, parameters);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
 
             //MessageBox.Show("Запись успешно удалена!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
 
