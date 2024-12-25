@@ -44,6 +44,7 @@ namespace ShippingCompany
             {
                 var menuItem = CreateMenuItem(rootItem, menuItems.Any(m => m.ParentId == rootItem.Id));
 
+                AddPermissionsFromDatabase(rootItem.FunctionName, Username); //!
                 // Добавление дочерних элементов
                 AddChildMenuItems(menuItem, menuItems, rootItem.Id);
 
@@ -145,7 +146,7 @@ namespace ShippingCompany
                 string methodName = functionName.Split('.').Last();
 
                 // Добавляем данные в GlobalDictionary
-                GlobalRightsDictionary.Set(methodName, (r, w, e, d));
+                GlobalRightsDictionary.Set(methodName.ToLower(), (r, w, e, d));
             }
         }
 
