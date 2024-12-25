@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Npgsql;
 using ShippingCompany.Classes.Login;
 using ShippingCompany.Database;
@@ -22,6 +23,7 @@ namespace ShippingCompany
         public MainWindow(string username)
         {
             InitializeComponent();
+            Icon = new BitmapImage(new Uri(@"C:\Users\danil\source\repos\DataBase\ShippingCompany\Icons\db.png"));
             Username = username;
             LoadMenu();
         }

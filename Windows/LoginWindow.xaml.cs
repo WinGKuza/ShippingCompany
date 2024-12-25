@@ -29,6 +29,7 @@ namespace ShippingCompany
         public LoginWindow()
         {
             InitializeComponent();
+            Icon = new BitmapImage(new Uri(@"C:\Users\danil\source\repos\DataBase\ShippingCompany\Icons\enter.png"));
         }
         private void LoginButton_Click(object sender, RoutedEventArgs e)
         {

@@ -27,6 +27,7 @@ namespace ShippingCompany
         public EditPasswordWindow(string username)
         {
             InitializeComponent();
+            Icon = new BitmapImage(new Uri(@"C:\Users\danil\source\repos\DataBase\ShippingCompany\Icons\edit.png"));
             Username = username;
         }
 
