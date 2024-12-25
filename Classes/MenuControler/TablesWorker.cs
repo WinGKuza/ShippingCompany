@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Data;
 using System.Linq;
-using System.Windows.Controls;
 using System.Windows;
+using System.Windows.Controls;
+using Npgsql;
 using ShippingCompany.Database;
 
 namespace ShippingCompany.Classes.MenuControler
@@ -14,23 +15,54 @@ namespace ShippingCompany.Classes.MenuControler
             // Очистка текущего содержимого
             mainWindow.MainContent.Children.Clear();
 
-            // Проверяем права на редактирование (e) и удаление (d)
+            // Создаем общий контейнер для DataGrid и кнопок
+            DockPanel mainPanel = new DockPanel();
+
+            // Проверяем права доступа
             var permissions = GlobalRightsDictionary.Get(tableName);
+            bool canRead = permissions.r;
+            bool canWrite = permissions.w;
             bool canEdit = permissions.e;
             bool canDelete = permissions.d;
+
+            // Если нет прав на чтение, выходим
+            if (!canRead)
+            {
+                MessageBox.Show("У вас нет прав на просмотр данной таблицы.", "Доступ запрещен", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
 
             // Выполнение SQL-запроса
             string query = $"SELECT * FROM {tableName};";
             DataTable dataTable = DatabaseManager.Instance.ExecuteQuery(query);
 
+            // Устанавливаем сортировку по умолчанию
+            DataView dataView = dataTable.DefaultView;
+            dataView.Sort = "id ASC";
+
             // Создаем DataGrid
             DataGrid dataGrid = new DataGrid
             {
                 AutoGenerateColumns = false,
-                ItemsSource = dataTable.DefaultView,
+                ItemsSource = dataView, // Привязываем DataView с сортировкой
                 IsReadOnly = !canEdit, // Редактирование разрешено только при e = true
-                CanUserAddRows = false // Отключаем добавление новых строк
+                CanUserAddRows = false, // Отключаем стандартное добавление строк
+                Margin = new Thickness(10)
             };
+
+            DockPanel.SetDock(dataGrid, Dock.Top); // Размещаем DataGrid в верхней части
+            mainPanel.Children.Add(dataGrid);
+
+            // Добавляем колонку с кнопкой "Удалить", если есть права на удаление
+            if (canDelete)
+            {
+                DataGridTemplateColumn deleteColumn = new DataGridTemplateColumn
+                {
+                    Header = "🗑 Удалить",
+                    CellTemplate = CreateDeleteButtonTemplate(mainWindow, tableName, dataTable)
+                };
+                dataGrid.Columns.Add(deleteColumn);
+            }
 
             // Добавляем остальные колонки с сортировкой
             foreach (DataColumn column in dataTable.Columns)
@@ -48,53 +80,137 @@ namespace ShippingCompany.Classes.MenuControler
                 dataGrid.Columns.Add(textColumn);
             }
 
-            // Добавляем колонку с кнопками удаления, если есть права
-            if (canDelete)
+            // Контейнер для кнопок
+            StackPanel buttonPanel = new StackPanel
             {
-                DataGridTemplateColumn deleteColumn = new DataGridTemplateColumn
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Bottom,
+                Margin = new Thickness(10)
+            };
+
+            // Добавляем кнопку "Добавить", если есть права на запись
+            if (canWrite)
+            {
+                Button addButton = new Button
                 {
-                    Header = "🗑 Удалить",
-                    CellTemplate = CreateDeleteButtonTemplate(mainWindow, tableName, dataTable)
+                    Content = "➕ Добавить",
+                    Margin = new Thickness(5)
                 };
-                dataGrid.Columns.Add(deleteColumn);
+
+                addButton.Click += (sender, args) =>
+                {
+                    if ((string)addButton.Content == "➕ Добавить")
+                    {
+                        DataRow newRow = dataTable.NewRow();
+                        if (dataTable.Columns.Contains("id"))
+                        {
+                            newRow["id"] = dataTable.AsEnumerable().Select(row => row.Field<int>("id")).DefaultIfEmpty(0).Max() + 1;
+                        }
+
+                        dataTable.Rows.Add(newRow);
+                        addButton.Content = "✔ Подтвердить";
+
+                        // Блокируем кнопку "Сохранить", если она существует
+                        var saveButton = buttonPanel.Children
+                            .OfType<Button>()
+                            .FirstOrDefault(b => (string)b.Content == "💾 Сохранить");
+                        if (saveButton != null)
+                        {
+                            saveButton.IsEnabled = false;
+                        }
+                    }
+                    else if ((string)addButton.Content == "✔ Подтвердить")
+                    {
+                        try
+                        {
+                            DataRow newRow = dataTable.Rows[dataTable.Rows.Count - 1];
+                            SaveNewRowToDatabase(tableName, newRow);
+                            MessageBox.Show("Строка успешно добавлена!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+                            addButton.Content = "➕ Добавить";
+
+                            // Разблокируем кнопку "Сохранить", если она существует
+                            var saveButton = buttonPanel.Children
+                                .OfType<Button>()
+                                .FirstOrDefault(b => (string)b.Content == "💾 Сохранить");
+                            if (saveButton != null)
+                            {
+                                saveButton.IsEnabled = true;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Ошибка при добавлении строки: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    }
+                };
+
+                buttonPanel.Children.Add(addButton);
             }
 
-            // Добавляем DataGrid в MainWindow
-            mainWindow.MainContent.Children.Add(dataGrid);
-
-            // Добавляем кнопку сохранения, если есть права на редактирование
+            // Добавляем кнопку "Сохранить", если есть права на редактирование
             if (canEdit)
             {
                 Button saveButton = new Button
                 {
                     Content = "💾 Сохранить",
-                    HorizontalAlignment = HorizontalAlignment.Right,
-                    VerticalAlignment = VerticalAlignment.Top,
-                    Margin = new Thickness(10)
+                    Margin = new Thickness(5),
+                    IsEnabled = true
                 };
+
                 saveButton.Click += (sender, args) => SaveTableChanges(mainWindow, tableName, dataTable);
-                mainWindow.MainContent.Children.Add(saveButton);
+
+                buttonPanel.Children.Add(saveButton);
             }
+
+            DockPanel.SetDock(buttonPanel, Dock.Bottom); // Размещаем кнопки в нижней части
+            mainPanel.Children.Add(buttonPanel);
+
+            // Добавляем общий контейнер в MainContent
+            mainWindow.MainContent.Children.Add(mainPanel);
         }
-
-
 
 
         private static DataTemplate CreateDeleteButtonTemplate(MainWindow mainWindow, string tableName, DataTable dataTable)
         {
             DataTemplate template = new DataTemplate();
             FrameworkElementFactory buttonFactory = new FrameworkElementFactory(typeof(Button));
-            buttonFactory.SetValue(Button.ContentProperty, "🗑 Удалить"); // Добавляем смайлик корзины
+            buttonFactory.SetValue(Button.ContentProperty, "🗑 Удалить");
             buttonFactory.AddHandler(Button.ClickEvent, new RoutedEventHandler((sender, args) =>
             {
-                // Получаем строку из кнопки
                 var button = sender as Button;
                 if (button != null)
                 {
                     var row = button.DataContext as DataRowView;
                     if (row != null)
                     {
-                        DeleteRowFromDatabase(mainWindow, tableName, row);
+                        if (row.IsNew) // Если строка новая
+                        {
+                            // Удаляем строку из DataTable
+                            dataTable.Rows.Remove(row.Row);
+
+                            // Меняем текст кнопки "Подтвердить" обратно на "Добавить"
+                            var addButton = mainWindow.MainContent.Children
+                                .OfType<Button>()
+                                .FirstOrDefault(b => (string)b.Content == "✔ Подтвердить");
+                            if (addButton != null)
+                            {
+                                addButton.Content = "➕ Добавить";
+                            }
+
+                            // Разблокируем кнопку "Сохранить"
+                            var saveButton = mainWindow.MainContent.Children
+                                .OfType<Button>()
+                                .FirstOrDefault(b => (string)b.Content == "💾 Сохранить");
+                            if (saveButton != null)
+                            {
+                                saveButton.IsEnabled = true;
+                            }
+                        }
+                        else // Если строка существует
+                        {
+                            DeleteRowFromDatabase(mainWindow, tableName, row);
+                        }
                     }
                 }
             }));
@@ -102,68 +218,42 @@ namespace ShippingCompany.Classes.MenuControler
             return template;
         }
 
-        private static void DeleteRowFromDatabase(MainWindow mainWindow, string tableName, DataRowView row)
+        private static void SaveNewRowToDatabase(string tableName, DataRow newRow)
         {
-            try
-            {
-                // Генерация SQL-запроса для удаления строки
-                string whereClause = string.Join(" AND ", row.Row.ItemArray.Select((value, index) =>
-                    $"{row.Row.Table.Columns[index].ColumnName} = @{row.Row.Table.Columns[index].ColumnName}"));
+            string columnNames = string.Join(", ", newRow.Table.Columns.Cast<DataColumn>().Where(c => c.ColumnName.ToLower() != "id").Select(c => c.ColumnName));
+            string columnValues = string.Join(", ", newRow.Table.Columns.Cast<DataColumn>().Where(c => c.ColumnName.ToLower() != "id").Select(c => $"@{c.ColumnName}"));
 
-                string deleteQuery = $"DELETE FROM {tableName} WHERE {whereClause};";
+            string insertQuery = $"INSERT INTO {tableName} (id, {columnNames}) VALUES (@id, {columnValues});";
 
-                var parameters = row.Row.ItemArray.Select((value, index) =>
-                    new Npgsql.NpgsqlParameter($"@{row.Row.Table.Columns[index].ColumnName}", value)).ToArray();
+            var parameters = newRow.Table.Columns.Cast<DataColumn>()
+                .Select(c => new Npgsql.NpgsqlParameter($"@{c.ColumnName}", newRow[c.ColumnName]))
+                .ToList();
 
-                int rowsAffected = DatabaseManager.Instance.ExecuteNonQuery(deleteQuery, parameters);
+            parameters.Add(new Npgsql.NpgsqlParameter("@id", newRow["id"]));
 
-                if (rowsAffected > 0)
-                {
-                    MessageBox.Show("Запись успешно удалена!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
-
-                    // Повторная загрузка данных из таблицы
-                    LoadTableFromDatabase(mainWindow, tableName);
-                }
-                else
-                {
-                    MessageBox.Show("Не удалось удалить запись.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при удалении записи: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            DatabaseManager.Instance.ExecuteNonQuery(insertQuery, parameters.ToArray());
         }
 
         private static void SaveTableChanges(MainWindow mainWindow, string tableName, DataTable dataTable)
         {
-            try
+            foreach (DataRow row in dataTable.Rows)
             {
-                foreach (DataRow row in dataTable.Rows)
+                if (row.RowState == DataRowState.Modified) // Измененные строки
                 {
-                    if (row.RowState == DataRowState.Modified) // Проверяем только измененные строки
-                    {
-                        string updateQuery = GenerateUpdateQuery(tableName, row);
-                        var parameters = row.Table.Columns.Cast<DataColumn>()
-                            .Where(c => c.ColumnName.ToLower() != "id") // Исключаем id
-                            .Select(c => new Npgsql.NpgsqlParameter($"@{c.ColumnName}", row[c.ColumnName]))
-                            .ToList();
+                    string updateQuery = GenerateUpdateQuery(tableName, row);
+                    var parameters = row.Table.Columns.Cast<DataColumn>()
+                        .Where(c => c.ColumnName.ToLower() != "id") // Исключаем id
+                        .Select(c => new Npgsql.NpgsqlParameter($"@{c.ColumnName}", row[c.ColumnName]))
+                        .ToList();
 
-                        parameters.Add(new Npgsql.NpgsqlParameter("@id", row["id"]));
+                    parameters.Add(new Npgsql.NpgsqlParameter("@id", row["id"]));
 
-                        DatabaseManager.Instance.ExecuteNonQuery(updateQuery, parameters.ToArray());
-                    }
+                    DatabaseManager.Instance.ExecuteNonQuery(updateQuery, parameters.ToArray());
                 }
-
-                MessageBox.Show("Изменения успешно сохранены!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
-
-                // Перезагружаем таблицу для отображения актуальных данных
-                LoadTableFromDatabase(mainWindow, tableName);
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Ошибка при сохранении изменений: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+
+            MessageBox.Show("Изменения успешно сохранены!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+            LoadTableFromDatabase(mainWindow, tableName);
         }
 
         private static string GenerateUpdateQuery(string tableName, DataRow row)
@@ -174,6 +264,23 @@ namespace ShippingCompany.Classes.MenuControler
                     .Select(c => $"{c.ColumnName} = @{c.ColumnName}"));
 
             return $"UPDATE {tableName} SET {setClause} WHERE id = @id;";
+        }
+
+        private static void DeleteRowFromDatabase(MainWindow mainWindow, string tableName, DataRowView row)
+        {
+            string whereClause = string.Join(" AND ", row.Row.ItemArray.Select((value, index) =>
+                $"{row.Row.Table.Columns[index].ColumnName} = @{row.Row.Table.Columns[index].ColumnName}"));
+
+            string deleteQuery = $"DELETE FROM {tableName} WHERE {whereClause};";
+
+            var parameters = row.Row.ItemArray.Select((value, index) =>
+                new Npgsql.NpgsqlParameter($"@{row.Row.Table.Columns[index].ColumnName}", value)).ToArray();
+
+            DatabaseManager.Instance.ExecuteNonQuery(deleteQuery, parameters);
+
+            //MessageBox.Show("Запись успешно удалена!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+
+            LoadTableFromDatabase(mainWindow, tableName);
         }
     }
 }
