@@ -177,6 +177,28 @@ namespace ShippingCompany.Classes.MenuControler
                             object result = DatabaseManager.Instance.ExecuteScalar(getMaxIdQuery);
                             int maxId = result != DBNull.Value ? Convert.ToInt32(result) : 0;
                             newRow["id"] = maxId + 1;
+                            foreach (DataColumn column in dataTable.Columns)
+                            {
+                                if (column.ColumnName.ToLower() != "id")
+                                {
+                                    if (column.DataType == typeof(string))
+                                    {
+                                        newRow[column.ColumnName] = "Слово";
+                                    }
+                                    else if (column.DataType == typeof(int) || column.DataType == typeof(long))
+                                    {
+                                        newRow[column.ColumnName] = 1;
+                                    }
+                                    else if (column.DataType == typeof(DateTime))
+                                    {
+                                        newRow[column.ColumnName] = DateTime.Now;
+                                    }
+                                    else if (column.DataType == typeof(double) || column.DataType == typeof(float))
+                                    {
+                                        newRow[column.ColumnName] = 0.1;
+                                    }
+                                }
+                            }
                         }
                         catch (Exception ex)
                         {
