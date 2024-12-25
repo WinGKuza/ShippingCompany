@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using Npgsql;
+using ShippingCompany.Classes.MenuControler;
 using ShippingCompany.Database;
 
 namespace ShippingCompany
@@ -12,12 +13,17 @@ namespace ShippingCompany
     public partial class MainWindow
     {
         public string Username { get; private set; }
+        public bool CanRead { get; private set; } = false;
+        public bool CanWrite { get; private set; } = false;
+        public bool CanEdit { get; private set; } = false;
+        public bool CanDelete { get; private set; } = false;
 
         public MainWindow(string username)
         {
             InitializeComponent();
             Username = username;
             LoadMenu();
+            LoadUserRights();
         }
 
         private void LoadMenu()
@@ -46,6 +52,39 @@ namespace ShippingCompany
                 MainMenu.Items.Add(menuItem);
             }
         }
+
+        private void LoadUserRights()
+        {
+            // Получение ID пользователя из таблицы app_user
+            string getIdQuery = "SELECT id FROM app_user WHERE login = @login";
+            var userId = DatabaseManager.Instance.ExecuteScalar(getIdQuery, new NpgsqlParameter("@login", Username));
+
+            if (userId == null)
+            {
+                MessageBox.Show("Не удалось получить ID пользователя. Проверьте данные.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // Получение прав доступа из таблицы user_rights
+            string getRightsQuery = "SELECT r, w, e, d FROM user_rights WHERE app_user_id = @userId";
+            var dataTable = DatabaseManager.Instance.ExecuteQuery(getRightsQuery, new NpgsqlParameter("@userId", userId));
+
+            if (dataTable.Rows.Count > 0)
+            {
+                // Присвоение прав доступа
+                CanRead = Convert.ToBoolean(dataTable.Rows[0]["r"]);
+                CanWrite = Convert.ToBoolean(dataTable.Rows[0]["w"]);
+                CanEdit = Convert.ToBoolean(dataTable.Rows[0]["e"]);
+                CanDelete = Convert.ToBoolean(dataTable.Rows[0]["d"]);
+            }
+            else
+            {
+                MessageBox.Show("Права доступа не найдены. Устанавливаются права только для чтения.", "Предупреждение", MessageBoxButton.OK, MessageBoxImage.Warning);
+                CanRead = true; // Только чтение по умолчанию
+                CanWrite = CanEdit = CanDelete = false;
+            }
+        }
+
 
         private int GetUserId(string username)
         {
@@ -109,7 +148,61 @@ namespace ShippingCompany
 
         private void MenuItem_Click(string functionName)
         {
-            MenuActionExecutor.Execute(functionName, this);
+            if (CanRead)
+            {
+                MenuActionExecutor.Execute(functionName, this);
+                ConfigureDataGrid();
+            }
+        }
+
+        private void ConfigureDataGrid()
+        {
+            if (MainContent.Children[0] is DataGrid dataGrid)
+            {
+                // Устанавливаем свойства редактирования и добавления строк
+                dataGrid.IsReadOnly = !CanEdit;
+                dataGrid.CanUserAddRows = CanWrite;
+
+                // Проверяем, нужно ли добавить колонку для удаления
+                if (CanDelete)
+                {
+                    // Создаем колонку для кнопки удаления
+                    var deleteColumn = new DataGridTemplateColumn
+                    {
+                        Header = "Удалить",
+                        CellTemplate = new DataTemplate
+                        {
+                            VisualTree = CreateDeleteButtonTemplate()
+                        }
+                    };
+
+                    dataGrid.Columns.Add(deleteColumn);
+                }
+            }
+        }
+
+        private FrameworkElementFactory CreateDeleteButtonTemplate()
+        {
+            var buttonFactory = new FrameworkElementFactory(typeof(Button));
+            buttonFactory.SetValue(Button.ContentProperty, "Удалить");
+            buttonFactory.AddHandler(Button.ClickEvent, new RoutedEventHandler(DeleteRow_Click));
+            return buttonFactory;
+        }
+
+        private void DeleteRow_Click(object sender, RoutedEventArgs e)
+        {
+            if (MainContent.Children[0] is DataGrid dataGrid && dataGrid.SelectedItem is DataRowView selectedRow)
+            {
+                // Получаем идентификатор строки для удаления
+                int id = Convert.ToInt32(selectedRow["id"]);
+
+                // Выполняем удаление строки из базы данных
+                string deleteQuery = "DELETE FROM your_table WHERE id = @id";
+                DatabaseManager.Instance.ExecuteNonQuery(deleteQuery, new NpgsqlParameter("@id", id));
+
+                // Обновляем данные в таблице
+                MenuActionExecutor.Execute("ClassName.MethodName", this);
+            }
         }
 
         // Класс для хранения данных об элементах меню
