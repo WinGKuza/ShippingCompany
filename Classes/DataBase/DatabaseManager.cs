@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Data;
 using Npgsql;
+using System.Windows;
 
 namespace ShippingCompany.Database
 {
@@ -94,7 +95,15 @@ namespace ShippingCompany.Database
                     {
                         command.Parameters.AddRange(parameters);
                     }
-                    return command.ExecuteNonQuery();
+                    try
+                    {
+                        return command.ExecuteNonQuery();
+                    }
+                    catch(Exception ex)
+                    {
+                        MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return -1;
+                    }
                 }
             }
         }
@@ -110,7 +119,15 @@ namespace ShippingCompany.Database
                     {
                         command.Parameters.AddRange(parameters);
                     }
-                    return command.ExecuteScalar();
+                    try
+                    {
+                        return command.ExecuteScalar();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(ex.Message, "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return -1;
+                    }
                 }
             }
         }
