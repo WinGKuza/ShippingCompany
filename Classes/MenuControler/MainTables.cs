@@ -11,7 +11,7 @@ namespace ShippingCompany.Classes.MenuControler
         /// </summary>
         public void Worker(MainWindow mainWindow)
         {
-            TablesWorker.LoadTableFromDatabase(mainWindow, "worker");
+            TablesWorker.LoadTableFromDatabase(mainWindow, "worker", "Работники");
         }
 
         /// <summary>
@@ -19,7 +19,7 @@ namespace ShippingCompany.Classes.MenuControler
         /// </summary>
         public void Client(MainWindow mainWindow)
         {
-            TablesWorker.LoadTableFromDatabase(mainWindow, "client");
+            TablesWorker.LoadTableFromDatabase(mainWindow, "client", "Клиенты");
         }
 
         /// <summary>
@@ -27,7 +27,7 @@ namespace ShippingCompany.Classes.MenuControler
         /// </summary>
         public void Shipment(MainWindow mainWindow)
         {
-            TablesWorker.LoadTableFromDatabase(mainWindow, "shipment");
+            TablesWorker.LoadTableFromDatabase(mainWindow, "shipment", "Партии");
         }
 
         /// <summary>
@@ -35,7 +35,7 @@ namespace ShippingCompany.Classes.MenuControler
         /// </summary>
         public void Cargo(MainWindow mainWindow)
         {
-            TablesWorker.LoadTableFromDatabase(mainWindow, "cargo");
+            TablesWorker.LoadTableFromDatabase(mainWindow, "cargo", "Грузы");
         }
 
         /// <summary>
@@ -43,7 +43,7 @@ namespace ShippingCompany.Classes.MenuControler
         /// </summary>
         public void Ship(MainWindow mainWindow)
         {
-            TablesWorker.LoadTableFromDatabase(mainWindow, "ship");
+            TablesWorker.LoadTableFromDatabase(mainWindow, "ship", "Судна");
         }
 
         /// <summary>
@@ -51,7 +51,7 @@ namespace ShippingCompany.Classes.MenuControler
         /// </summary>
         public void Seaport(MainWindow mainWindow)
         {
-            TablesWorker.LoadTableFromDatabase(mainWindow, "seaport");
+            TablesWorker.LoadTableFromDatabase(mainWindow, "seaport", "Порты");
         }
     }
 }

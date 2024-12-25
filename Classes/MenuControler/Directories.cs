@@ -10,37 +10,37 @@ namespace ShippingCompany.Classes.MenuControler
     {
         public void ShipType(MainWindow mainWindow)
         {
-            TablesWorker.LoadTableFromDatabase(mainWindow, "ship_type");
+            TablesWorker.LoadTableFromDatabase(mainWindow, "ship_type", "Типы суднен");
         }
 
         public void Route(MainWindow mainWindow)
         {
-            TablesWorker.LoadTableFromDatabase(mainWindow, "route");
+            TablesWorker.LoadTableFromDatabase(mainWindow, "route", "Маршруты");
         }
 
         public void Status(MainWindow mainWindow)
         {
-            TablesWorker.LoadTableFromDatabase(mainWindow, "status");
+            TablesWorker.LoadTableFromDatabase(mainWindow, "status", "Статусы");
         }
 
         public void Bank(MainWindow mainWindow)
         {
-            TablesWorker.LoadTableFromDatabase(mainWindow, "bank");
+            TablesWorker.LoadTableFromDatabase(mainWindow, "bank", "Банки");
         }
 
         public void UnitOfMeasurement(MainWindow mainWindow)
         {
-            TablesWorker.LoadTableFromDatabase(mainWindow, "unit_of_measurement");
+            TablesWorker.LoadTableFromDatabase(mainWindow, "unit_of_measurement", "Еденицы измерения");
         }
 
         public void City(MainWindow mainWindow)
         {
-            TablesWorker.LoadTableFromDatabase(mainWindow, "city");
+            TablesWorker.LoadTableFromDatabase(mainWindow, "city", "Города");
         }
 
         public void Street(MainWindow mainWindow)
         {
-            TablesWorker.LoadTableFromDatabase(mainWindow, "street");
+            TablesWorker.LoadTableFromDatabase(mainWindow, "street", "Улицы");
         }
     }
 }

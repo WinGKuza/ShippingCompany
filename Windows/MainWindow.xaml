@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ShippingCompany"
         mc:Ignorable="d"
-        Title="Database Management" Height="600" Width="800" WindowStartupLocation="CenterScreen">
+        Title="Главный экран" Height="600" Width="800" WindowStartupLocation="CenterScreen">
     <DockPanel>
         <!-- Меню сверху -->
         <Menu x:Name="MainMenu" DockPanel.Dock="Top">

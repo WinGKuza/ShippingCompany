@@ -10,22 +10,22 @@ namespace ShippingCompany.Classes.MenuControler
     {
         public void SeaportRoute(MainWindow mainWindow)
         {
-            TablesWorker.LoadTableFromDatabase(mainWindow, "seaport_route");
+            TablesWorker.LoadTableFromDatabase(mainWindow, "seaport_route", "Маршруты портов");
         }
 
         public void ShipRoute(MainWindow mainWindow)
         {
-            TablesWorker.LoadTableFromDatabase(mainWindow, "ship_route");
+            TablesWorker.LoadTableFromDatabase(mainWindow, "ship_route", "Маршруты суден");
         }
 
         public void ShipWorkers(MainWindow mainWindow)
         {
-            TablesWorker.LoadTableFromDatabase(mainWindow, "ship_workers");
+            TablesWorker.LoadTableFromDatabase(mainWindow, "ship_workers", "Работники судна");
         }
 
         public void CargoInShipment(MainWindow mainWindow)
         {
-            TablesWorker.LoadTableFromDatabase(mainWindow, "cargo_in_shipment");
+            TablesWorker.LoadTableFromDatabase(mainWindow, "cargo_in_shipment", "Груз в партии");
         }
     }
 }

@@ -10,8 +10,11 @@ namespace ShippingCompany.Classes.MenuControler
 {
     internal static class TablesWorker
     {
-        public static void LoadTableFromDatabase(MainWindow mainWindow, string tableName)
+        public static void LoadTableFromDatabase(MainWindow mainWindow, string tableName, string menuItemName)
         {
+            // Устанавливаем заголовок окна равным названию элемента меню
+            mainWindow.Title = menuItemName;
+
             // Очистка текущего содержимого
             mainWindow.MainContent.Children.Clear();
 
@@ -46,7 +49,7 @@ namespace ShippingCompany.Classes.MenuControler
             DataView dataView = dataTable.DefaultView;
             dataView.Sort = "id ASC";
 
-            // Создаем DataGrid заранее
+            // Объявляем DataGrid
             DataGrid dataGrid = new DataGrid
             {
                 AutoGenerateColumns = true,
@@ -62,13 +65,13 @@ namespace ShippingCompany.Classes.MenuControler
                 DataGridTemplateColumn deleteColumn = new DataGridTemplateColumn
                 {
                     Header = "🗑 Удалить",
-                    CellTemplate = CreateDeleteButtonTemplate(mainWindow, tableName, dataTable)
+                    CellTemplate = CreateDeleteButtonTemplate(mainWindow, tableName, dataTable, menuItemName)
                 };
 
                 dataGrid.Columns.Insert(0, deleteColumn); // Добавляем колонку удаления в начало
             }
 
-            // Контейнер для строки поиска
+            // Добавляем строку поиска
             StackPanel searchPanel = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -77,7 +80,6 @@ namespace ShippingCompany.Classes.MenuControler
                 Margin = new Thickness(10)
             };
 
-            // Поле ввода для строки поиска
             TextBox searchTextBox = new TextBox
             {
                 Width = 300,
@@ -85,7 +87,6 @@ namespace ShippingCompany.Classes.MenuControler
                 Margin = new Thickness(0, 0, 5, 0)
             };
 
-            // Кнопка "🔍" для выполнения поиска
             Button searchButton = new Button
             {
                 Content = "🔍",
@@ -93,7 +94,6 @@ namespace ShippingCompany.Classes.MenuControler
                 HorizontalAlignment = HorizontalAlignment.Left
             };
 
-            // Логика кнопки поиска
             searchButton.Click += (sender, args) =>
             {
                 string searchText = searchTextBox.Text.Trim();
@@ -101,12 +101,10 @@ namespace ShippingCompany.Classes.MenuControler
                 string query;
                 if (string.IsNullOrEmpty(searchText))
                 {
-                    // Если строка поиска пуста, загружаем исходные данные
                     query = baseQuery;
                 }
                 else
                 {
-                    // Преобразуем все значения в текст и ищем совпадения
                     query = $"SELECT * FROM {tableName} WHERE " +
                             string.Join(" OR ", dataTable.Columns
                                 .Cast<DataColumn>()
@@ -115,7 +113,6 @@ namespace ShippingCompany.Classes.MenuControler
 
                 try
                 {
-                    // Выполняем запрос и обновляем таблицу
                     DataTable searchResults = DatabaseManager.Instance.ExecuteQuery(query);
                     dataTable.Clear();
                     foreach (DataRow row in searchResults.Rows)
@@ -123,19 +120,17 @@ namespace ShippingCompany.Classes.MenuControler
                         dataTable.ImportRow(row);
                     }
 
-                    // Обновляем DataGrid
                     dataGrid.ItemsSource = dataTable.DefaultView;
 
-                    // Пересоздаем колонку удаления, если это необходимо
                     if (canDelete && dataGrid.Columns.All(col => col.Header?.ToString() != "🗑 Удалить"))
                     {
                         DataGridTemplateColumn deleteColumn = new DataGridTemplateColumn
                         {
                             Header = "🗑 Удалить",
-                            CellTemplate = CreateDeleteButtonTemplate(mainWindow, tableName, dataTable)
+                            CellTemplate = CreateDeleteButtonTemplate(mainWindow, tableName, dataTable, menuItemName)
                         };
 
-                        dataGrid.Columns.Insert(0, deleteColumn); // Добавляем колонку удаления в начало
+                        dataGrid.Columns.Insert(0, deleteColumn);
                     }
                 }
                 catch (Exception ex)
@@ -144,17 +139,14 @@ namespace ShippingCompany.Classes.MenuControler
                 }
             };
 
-            // Добавляем строку поиска и кнопку в панель
             searchPanel.Children.Add(searchTextBox);
             searchPanel.Children.Add(searchButton);
-
             DockPanel.SetDock(searchPanel, Dock.Top);
             mainPanel.Children.Add(searchPanel);
 
-            DockPanel.SetDock(dataGrid, Dock.Top); // Размещаем DataGrid ниже строки поиска
+            DockPanel.SetDock(dataGrid, Dock.Top);
             mainPanel.Children.Add(dataGrid);
 
-            // Контейнер для кнопок (Добавить, Сохранить)
             StackPanel buttonPanel = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -163,7 +155,6 @@ namespace ShippingCompany.Classes.MenuControler
                 Margin = new Thickness(10)
             };
 
-            // Добавляем кнопку "Добавить" (если есть права на запись)
             if (canWrite)
             {
                 Button addButton = new Button
@@ -177,15 +168,11 @@ namespace ShippingCompany.Classes.MenuControler
                     if ((string)addButton.Content == "➕ Добавить")
                     {
                         DataRow newRow = dataTable.NewRow();
-
-                        // Запрос для получения максимального значения id из базы данных
                         string getMaxIdQuery = $"SELECT MAX(id) FROM {tableName};";
                         try
                         {
                             object result = DatabaseManager.Instance.ExecuteScalar(getMaxIdQuery);
                             int maxId = result != DBNull.Value ? Convert.ToInt32(result) : 0;
-
-                            // Устанавливаем новый id как maxId + 1
                             newRow["id"] = maxId + 1;
                         }
                         catch (Exception ex)
@@ -194,11 +181,9 @@ namespace ShippingCompany.Classes.MenuControler
                             return;
                         }
 
-                        // Добавляем новую строку в DataTable
                         dataTable.Rows.Add(newRow);
                         addButton.Content = "✔ Подтвердить";
 
-                        // Блокируем кнопку "Сохранить", если она существует
                         var saveButton = buttonPanel.Children
                             .OfType<Button>()
                             .FirstOrDefault(b => (string)b.Content == "💾 Сохранить");
@@ -216,7 +201,6 @@ namespace ShippingCompany.Classes.MenuControler
                             MessageBox.Show("Строка успешно добавлена!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
                             addButton.Content = "➕ Добавить";
 
-                            // Разблокируем кнопку "Сохранить", если она существует
                             var saveButton = buttonPanel.Children
                                 .OfType<Button>()
                                 .FirstOrDefault(b => (string)b.Content == "💾 Сохранить");
@@ -232,11 +216,9 @@ namespace ShippingCompany.Classes.MenuControler
                     }
                 };
 
-
                 buttonPanel.Children.Add(addButton);
             }
 
-            // Добавляем кнопку "Сохранить" (если есть права на редактирование)
             if (canEdit)
             {
                 Button saveButton = new Button
@@ -246,15 +228,13 @@ namespace ShippingCompany.Classes.MenuControler
                     IsEnabled = true
                 };
 
-                saveButton.Click += (sender, args) => SaveTableChanges(mainWindow, tableName, dataTable);
-
+                saveButton.Click += (sender, args) => SaveTableChanges(mainWindow, tableName, dataTable, menuItemName);
                 buttonPanel.Children.Add(saveButton);
             }
 
-            DockPanel.SetDock(buttonPanel, Dock.Bottom); // Размещаем кнопки в нижней части
+            DockPanel.SetDock(buttonPanel, Dock.Bottom);
             mainPanel.Children.Add(buttonPanel);
 
-            // Добавляем общий контейнер в MainContent
             mainWindow.MainContent.Children.Add(mainPanel);
         }
 
@@ -263,7 +243,8 @@ namespace ShippingCompany.Classes.MenuControler
 
 
 
-        private static DataTemplate CreateDeleteButtonTemplate(MainWindow mainWindow, string tableName, DataTable dataTable)
+
+        private static DataTemplate CreateDeleteButtonTemplate(MainWindow mainWindow, string tableName, DataTable dataTable, string menuItemName)
         {
             DataTemplate template = new DataTemplate();
             FrameworkElementFactory buttonFactory = new FrameworkElementFactory(typeof(Button));
@@ -301,7 +282,7 @@ namespace ShippingCompany.Classes.MenuControler
                         }
                         else // Если строка существует
                         {
-                            DeleteRowFromDatabase(mainWindow, tableName, row);
+                            DeleteRowFromDatabase(mainWindow, tableName, row, menuItemName);
                         }
                     }
                 }
@@ -326,7 +307,7 @@ namespace ShippingCompany.Classes.MenuControler
             DatabaseManager.Instance.ExecuteNonQuery(insertQuery, parameters.ToArray());
         }
 
-        private static void SaveTableChanges(MainWindow mainWindow, string tableName, DataTable dataTable)
+        private static void SaveTableChanges(MainWindow mainWindow, string tableName, DataTable dataTable, string menuItemName)
         {
             foreach (DataRow row in dataTable.Rows)
             {
@@ -345,7 +326,7 @@ namespace ShippingCompany.Classes.MenuControler
             }
 
             MessageBox.Show("Изменения успешно сохранены!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
-            LoadTableFromDatabase(mainWindow, tableName);
+            LoadTableFromDatabase(mainWindow, tableName, menuItemName);
         }
 
         private static string GenerateUpdateQuery(string tableName, DataRow row)
@@ -358,7 +339,7 @@ namespace ShippingCompany.Classes.MenuControler
             return $"UPDATE {tableName} SET {setClause} WHERE id = @id;";
         }
 
-        private static void DeleteRowFromDatabase(MainWindow mainWindow, string tableName, DataRowView row)
+        private static void DeleteRowFromDatabase(MainWindow mainWindow, string tableName, DataRowView row, string menuItemName)
         {
             string whereClause = string.Join(" AND ", row.Row.ItemArray.Select((value, index) =>
                 $"{row.Row.Table.Columns[index].ColumnName} = @{row.Row.Table.Columns[index].ColumnName}"));
@@ -372,7 +353,7 @@ namespace ShippingCompany.Classes.MenuControler
 
             //MessageBox.Show("Запись успешно удалена!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
 
-            LoadTableFromDatabase(mainWindow, tableName);
+            LoadTableFromDatabase(mainWindow, tableName, menuItemName);
         }
     }
 }
