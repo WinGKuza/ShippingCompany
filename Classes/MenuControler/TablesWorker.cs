@@ -23,22 +23,13 @@ namespace ShippingCompany.Classes.MenuControler
             string query = $"SELECT * FROM {tableName};";
             DataTable dataTable = DatabaseManager.Instance.ExecuteQuery(query);
 
-            // Проверяем, содержит ли таблица столбец id для сортировки
-            if (!dataTable.Columns.Contains("id"))
-            {
-                throw new ArgumentException($"Таблица '{tableName}' не содержит столбца 'id'.");
-            }
-
-            // Устанавливаем сортировку по умолчанию для DataView
-            DataView dataView = dataTable.DefaultView;
-            dataView.Sort = "id ASC"; // Сортировка по id по возрастанию
-
             // Создаем DataGrid
             DataGrid dataGrid = new DataGrid
             {
                 AutoGenerateColumns = false,
-                ItemsSource = dataView, // Привязываем DataView с сортировкой
-                IsReadOnly = !canEdit // Редактирование разрешено только при e = true
+                ItemsSource = dataTable.DefaultView,
+                IsReadOnly = !canEdit, // Редактирование разрешено только при e = true
+                CanUserAddRows = false // Отключаем добавление новых строк
             };
 
             // Добавляем остальные колонки с сортировкой
@@ -85,6 +76,7 @@ namespace ShippingCompany.Classes.MenuControler
                 mainWindow.MainContent.Children.Add(saveButton);
             }
         }
+
 
 
 
