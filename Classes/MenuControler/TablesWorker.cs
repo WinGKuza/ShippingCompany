@@ -15,7 +15,7 @@ namespace ShippingCompany.Classes.MenuControler
             // Очистка текущего содержимого
             mainWindow.MainContent.Children.Clear();
 
-            // Создаем общий контейнер для DataGrid и кнопок
+            // Создаем общий контейнер для DataGrid, строки поиска и кнопок
             DockPanel mainPanel = new DockPanel();
 
             // Проверяем права доступа
@@ -33,27 +33,30 @@ namespace ShippingCompany.Classes.MenuControler
             }
 
             // Выполнение SQL-запроса
-            string query = $"SELECT * FROM {tableName};";
-            DataTable dataTable = DatabaseManager.Instance.ExecuteQuery(query);
+            string baseQuery = $"SELECT * FROM {tableName};";
+            DataTable dataTable = DatabaseManager.Instance.ExecuteQuery(baseQuery);
+
+            // Проверяем, что данные были получены
+            if (dataTable == null || dataTable.Rows.Count == 0)
+            {
+                MessageBox.Show("Данные не найдены или запрос вернул пустой результат.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
 
             // Устанавливаем сортировку по умолчанию
             DataView dataView = dataTable.DefaultView;
             dataView.Sort = "id ASC";
 
-            // Создаем DataGrid
+            // Создаем DataGrid заранее
             DataGrid dataGrid = new DataGrid
             {
-                AutoGenerateColumns = false,
+                AutoGenerateColumns = true,
                 ItemsSource = dataView, // Привязываем DataView с сортировкой
                 IsReadOnly = !canEdit, // Редактирование разрешено только при e = true
                 CanUserAddRows = false, // Отключаем стандартное добавление строк
                 Margin = new Thickness(10)
             };
 
-            DockPanel.SetDock(dataGrid, Dock.Top); // Размещаем DataGrid в верхней части
-            mainPanel.Children.Add(dataGrid);
-
-            // Добавляем колонку с кнопкой "Удалить", если есть права на удаление
+            // Добавляем колонку с кнопкой "Удалить" при открытии таблицы
             if (canDelete)
             {
                 DataGridTemplateColumn deleteColumn = new DataGridTemplateColumn
@@ -61,26 +64,97 @@ namespace ShippingCompany.Classes.MenuControler
                     Header = "🗑 Удалить",
                     CellTemplate = CreateDeleteButtonTemplate(mainWindow, tableName, dataTable)
                 };
-                dataGrid.Columns.Add(deleteColumn);
+
+                dataGrid.Columns.Insert(0, deleteColumn); // Добавляем колонку удаления в начало
             }
 
-            // Добавляем остальные колонки с сортировкой
-            foreach (DataColumn column in dataTable.Columns)
+            // Контейнер для строки поиска
+            StackPanel searchPanel = new StackPanel
             {
-                DataGridTextColumn textColumn = new DataGridTextColumn
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(10)
+            };
+
+            // Поле ввода для строки поиска
+            TextBox searchTextBox = new TextBox
+            {
+                Width = 300,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Margin = new Thickness(0, 0, 5, 0)
+            };
+
+            // Кнопка "🔍" для выполнения поиска
+            Button searchButton = new Button
+            {
+                Content = "🔍",
+                Width = 50,
+                HorizontalAlignment = HorizontalAlignment.Left
+            };
+
+            // Логика кнопки поиска
+            searchButton.Click += (sender, args) =>
+            {
+                string searchText = searchTextBox.Text.Trim();
+
+                string query;
+                if (string.IsNullOrEmpty(searchText))
                 {
-                    Header = column.ColumnName,
-                    Binding = new System.Windows.Data.Binding($"[{column.ColumnName}]"),
-                    IsReadOnly = column.ColumnName.ToLower() == "id", // id всегда только для чтения
-                    CanUserSort = true // Включаем сортировку
-                };
+                    // Если строка поиска пуста, загружаем исходные данные
+                    query = baseQuery;
+                }
+                else
+                {
+                    // Преобразуем все значения в текст и ищем совпадения
+                    query = $"SELECT * FROM {tableName} WHERE " +
+                            string.Join(" OR ", dataTable.Columns
+                                .Cast<DataColumn>()
+                                .Select(c => $"CAST({c.ColumnName} AS TEXT) ILIKE '%{searchText}%'"));
+                }
 
-                // Связываем сортировку с именем столбца
-                textColumn.SortMemberPath = column.ColumnName;
-                dataGrid.Columns.Add(textColumn);
-            }
+                try
+                {
+                    // Выполняем запрос и обновляем таблицу
+                    DataTable searchResults = DatabaseManager.Instance.ExecuteQuery(query);
+                    dataTable.Clear();
+                    foreach (DataRow row in searchResults.Rows)
+                    {
+                        dataTable.ImportRow(row);
+                    }
 
-            // Контейнер для кнопок
+                    // Обновляем DataGrid
+                    dataGrid.ItemsSource = dataTable.DefaultView;
+
+                    // Пересоздаем колонку удаления, если это необходимо
+                    if (canDelete && dataGrid.Columns.All(col => col.Header?.ToString() != "🗑 Удалить"))
+                    {
+                        DataGridTemplateColumn deleteColumn = new DataGridTemplateColumn
+                        {
+                            Header = "🗑 Удалить",
+                            CellTemplate = CreateDeleteButtonTemplate(mainWindow, tableName, dataTable)
+                        };
+
+                        dataGrid.Columns.Insert(0, deleteColumn); // Добавляем колонку удаления в начало
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Ошибка при выполнении поиска: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            };
+
+            // Добавляем строку поиска и кнопку в панель
+            searchPanel.Children.Add(searchTextBox);
+            searchPanel.Children.Add(searchButton);
+
+            DockPanel.SetDock(searchPanel, Dock.Top);
+            mainPanel.Children.Add(searchPanel);
+
+            DockPanel.SetDock(dataGrid, Dock.Top); // Размещаем DataGrid ниже строки поиска
+            mainPanel.Children.Add(dataGrid);
+
+            // Контейнер для кнопок (Добавить, Сохранить)
             StackPanel buttonPanel = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -89,7 +163,7 @@ namespace ShippingCompany.Classes.MenuControler
                 Margin = new Thickness(10)
             };
 
-            // Добавляем кнопку "Добавить", если есть права на запись
+            // Добавляем кнопку "Добавить" (если есть права на запись)
             if (canWrite)
             {
                 Button addButton = new Button
@@ -103,11 +177,24 @@ namespace ShippingCompany.Classes.MenuControler
                     if ((string)addButton.Content == "➕ Добавить")
                     {
                         DataRow newRow = dataTable.NewRow();
-                        if (dataTable.Columns.Contains("id"))
+
+                        // Запрос для получения максимального значения id из базы данных
+                        string getMaxIdQuery = $"SELECT MAX(id) FROM {tableName};";
+                        try
                         {
-                            newRow["id"] = dataTable.AsEnumerable().Select(row => row.Field<int>("id")).DefaultIfEmpty(0).Max() + 1;
+                            object result = DatabaseManager.Instance.ExecuteScalar(getMaxIdQuery);
+                            int maxId = result != DBNull.Value ? Convert.ToInt32(result) : 0;
+
+                            // Устанавливаем новый id как maxId + 1
+                            newRow["id"] = maxId + 1;
+                        }
+                        catch (Exception ex)
+                        {
+                            MessageBox.Show($"Ошибка при вычислении нового ID: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                            return;
                         }
 
+                        // Добавляем новую строку в DataTable
                         dataTable.Rows.Add(newRow);
                         addButton.Content = "✔ Подтвердить";
 
@@ -145,10 +232,11 @@ namespace ShippingCompany.Classes.MenuControler
                     }
                 };
 
+
                 buttonPanel.Children.Add(addButton);
             }
 
-            // Добавляем кнопку "Сохранить", если есть права на редактирование
+            // Добавляем кнопку "Сохранить" (если есть права на редактирование)
             if (canEdit)
             {
                 Button saveButton = new Button
@@ -169,6 +257,10 @@ namespace ShippingCompany.Classes.MenuControler
             // Добавляем общий контейнер в MainContent
             mainWindow.MainContent.Children.Add(mainPanel);
         }
+
+
+
+
 
 
         private static DataTemplate CreateDeleteButtonTemplate(MainWindow mainWindow, string tableName, DataTable dataTable)
