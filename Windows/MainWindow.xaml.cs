@@ -4,6 +4,7 @@ using System.Data;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Npgsql;
 using ShippingCompany.Classes.Login;
 using ShippingCompany.Database;
@@ -42,7 +43,7 @@ namespace ShippingCompany
             var rootMenuItems = menuItems.Where(m => m.ParentId == 0).ToList();
             foreach (var rootItem in rootMenuItems)
             {
-                var menuItem = CreateMenuItem(rootItem, menuItems.Any(m => m.ParentId == rootItem.Id));
+                var menuItem = CreateMenuItem(rootItem, menuItems.Any(m => m.ParentId == rootItem.Id), true);
 
                 AddPermissionsFromDatabase(rootItem.FunctionName, Username); //!
                 // Добавление дочерних элементов
@@ -80,12 +81,14 @@ namespace ShippingCompany
                     }).ToList();
         }
 
-        private MenuItem CreateMenuItem(MenuItemData itemData, bool hasChildren)
+        private MenuItem CreateMenuItem(MenuItemData itemData, bool hasChildren, bool isRoot)
         {
             var menuItem = new MenuItem
             {
                 Header = itemData.Name,
-                Tag = itemData.FunctionName
+                Tag = itemData.FunctionName,
+                Foreground = isRoot ? Brushes.White : Brushes.Black, // Цвет текста
+                Background = isRoot ? new SolidColorBrush(Color.FromRgb(66, 133, 244)) : Brushes.White // Фон элемента 
             };
 
             // Добавляем обработчик только для элементов без дочерних элементов
@@ -104,7 +107,7 @@ namespace ShippingCompany
             foreach (var childItem in childItems)
             {
                 bool hasChildren = menuItems.Any(m => m.ParentId == childItem.Id);
-                var menuItem = CreateMenuItem(childItem, hasChildren);
+                var menuItem = CreateMenuItem(childItem, hasChildren, false);
                 parentMenuItem.Items.Add(menuItem);
 
                 AddPermissionsFromDatabase(childItem.FunctionName, Username);

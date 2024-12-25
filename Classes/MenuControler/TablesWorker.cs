@@ -3,6 +3,7 @@ using System.Data;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using Npgsql;
 using ShippingCompany.Database;
 
@@ -91,7 +92,9 @@ namespace ShippingCompany.Classes.MenuControler
             {
                 Content = "🔍",
                 Width = 50,
-                HorizontalAlignment = HorizontalAlignment.Left
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Foreground = Brushes.White,
+                Background = new SolidColorBrush(Color.FromRgb(66, 133, 244)) 
             };
 
             searchButton.Click += (sender, args) =>

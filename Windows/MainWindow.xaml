@@ -1,22 +1,17 @@
 ﻿<Window x:Class="ShippingCompany.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:ShippingCompany"
-        mc:Ignorable="d"
-        Title="Главный экран" Height="600" Width="800" WindowStartupLocation="CenterScreen">
+        Title="Главный экран" Height="600" Width="800" 
+        WindowStartupLocation="CenterScreen" ResizeMode="CanResize"
+        Background="#FFFFFF">
     <DockPanel>
-        <!-- Меню сверху -->
-        <Menu x:Name="MainMenu" DockPanel.Dock="Top">
+        <!-- Главное меню -->
+        <Menu x:Name="MainMenu" DockPanel.Dock="Top" Background="#4285F4" Foreground="White">
         </Menu>
 
-        <!-- Остальной контент окна -->
-        <Grid>
-            <!-- Здесь можно разместить содержимое, которое также масштабируется -->
-            <ScrollViewer DockPanel.Dock="Bottom">
-                <StackPanel x:Name="MainContent" />
-            </ScrollViewer>
-        </Grid>
+        <!-- Основной контент -->
+        <ScrollViewer DockPanel.Dock="Bottom" Margin="10">
+            <StackPanel x:Name="MainContent" />
+        </ScrollViewer>
     </DockPanel>
 </Window>
