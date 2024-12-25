@@ -9,68 +9,90 @@ namespace ShippingCompany.Classes.MenuControler
 {
     internal static class TablesWorker
     {
-        /// <summary>
-        /// Универсальный метод для загрузки данных из указанной таблицы базы данных с возможностью удаления.
-        /// </summary>
-        /// <param name="mainWindow">Ссылка на MainWindow для добавления содержимого.</param>
-        /// <param name="tableName">Название таблицы базы данных.</param>
         public static void LoadTableFromDatabase(MainWindow mainWindow, string tableName)
         {
             // Очистка текущего содержимого
             mainWindow.MainContent.Children.Clear();
 
-            // Проверяем права на удаление (d)
+            // Проверяем права на редактирование (e) и удаление (d)
             var permissions = GlobalRightsDictionary.Get(tableName);
+            bool canEdit = permissions.e;
             bool canDelete = permissions.d;
 
             // Выполнение SQL-запроса
             string query = $"SELECT * FROM {tableName};";
             DataTable dataTable = DatabaseManager.Instance.ExecuteQuery(query);
 
+            // Проверяем, содержит ли таблица столбец id для сортировки
+            if (!dataTable.Columns.Contains("id"))
+            {
+                throw new ArgumentException($"Таблица '{tableName}' не содержит столбца 'id'.");
+            }
+
+            // Устанавливаем сортировку по умолчанию для DataView
+            DataView dataView = dataTable.DefaultView;
+            dataView.Sort = "id ASC"; // Сортировка по id по возрастанию
+
             // Создаем DataGrid
             DataGrid dataGrid = new DataGrid
             {
                 AutoGenerateColumns = false,
-                ItemsSource = dataTable.DefaultView
+                ItemsSource = dataView, // Привязываем DataView с сортировкой
+                IsReadOnly = !canEdit // Редактирование разрешено только при e = true
             };
+
+            // Добавляем остальные колонки с сортировкой
+            foreach (DataColumn column in dataTable.Columns)
+            {
+                DataGridTextColumn textColumn = new DataGridTextColumn
+                {
+                    Header = column.ColumnName,
+                    Binding = new System.Windows.Data.Binding($"[{column.ColumnName}]"),
+                    IsReadOnly = column.ColumnName.ToLower() == "id", // id всегда только для чтения
+                    CanUserSort = true // Включаем сортировку
+                };
+
+                // Связываем сортировку с именем столбца
+                textColumn.SortMemberPath = column.ColumnName;
+                dataGrid.Columns.Add(textColumn);
+            }
 
             // Добавляем колонку с кнопками удаления, если есть права
             if (canDelete)
             {
                 DataGridTemplateColumn deleteColumn = new DataGridTemplateColumn
                 {
-                    Header = "Удалить",
+                    Header = "🗑 Удалить",
                     CellTemplate = CreateDeleteButtonTemplate(mainWindow, tableName, dataTable)
                 };
                 dataGrid.Columns.Add(deleteColumn);
             }
 
-            // Добавляем остальные колонки
-            foreach (DataColumn column in dataTable.Columns)
-            {
-                DataGridTextColumn textColumn = new DataGridTextColumn
-                {
-                    Header = column.ColumnName,
-                    Binding = new System.Windows.Data.Binding($"[{column.ColumnName}]")
-                };
-                dataGrid.Columns.Add(textColumn);
-            }
-
             // Добавляем DataGrid в MainWindow
             mainWindow.MainContent.Children.Add(dataGrid);
+
+            // Добавляем кнопку сохранения, если есть права на редактирование
+            if (canEdit)
+            {
+                Button saveButton = new Button
+                {
+                    Content = "💾 Сохранить",
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Top,
+                    Margin = new Thickness(10)
+                };
+                saveButton.Click += (sender, args) => SaveTableChanges(mainWindow, tableName, dataTable);
+                mainWindow.MainContent.Children.Add(saveButton);
+            }
         }
 
-        /// <summary>
-        /// Создает шаблон для кнопки удаления в колонке DataGrid.
-        /// </summary>
-        /// <param name="tableName">Название таблицы базы данных.</param>
-        /// <param name="dataTable">Текущая таблица данных.</param>
-        /// <returns>DataTemplate с кнопкой удаления.</returns>
+
+
         private static DataTemplate CreateDeleteButtonTemplate(MainWindow mainWindow, string tableName, DataTable dataTable)
         {
             DataTemplate template = new DataTemplate();
             FrameworkElementFactory buttonFactory = new FrameworkElementFactory(typeof(Button));
-            buttonFactory.SetValue(Button.ContentProperty, "Удалить");
+            buttonFactory.SetValue(Button.ContentProperty, "🗑 Удалить"); // Добавляем смайлик корзины
             buttonFactory.AddHandler(Button.ClickEvent, new RoutedEventHandler((sender, args) =>
             {
                 // Получаем строку из кнопки
@@ -88,17 +110,6 @@ namespace ShippingCompany.Classes.MenuControler
             return template;
         }
 
-        /// <summary>
-        /// Удаляет строку из базы данных.
-        /// </summary>
-        /// <param name="tableName">Название таблицы.</param>
-        /// <param name="row">Строка данных для удаления.</param>
-        /// <summary>
-        /// Удаляет строку из базы данных и обновляет отображение таблицы.
-        /// </summary>
-        /// <param name="tableName">Название таблицы.</param>
-        /// <param name="row">Строка данных для удаления.</param>
-        /// <param name="mainWindow">Ссылка на MainWindow для обновления содержимого.</param>
         private static void DeleteRowFromDatabase(MainWindow mainWindow, string tableName, DataRowView row)
         {
             try
@@ -132,5 +143,45 @@ namespace ShippingCompany.Classes.MenuControler
             }
         }
 
+        private static void SaveTableChanges(MainWindow mainWindow, string tableName, DataTable dataTable)
+        {
+            try
+            {
+                foreach (DataRow row in dataTable.Rows)
+                {
+                    if (row.RowState == DataRowState.Modified) // Проверяем только измененные строки
+                    {
+                        string updateQuery = GenerateUpdateQuery(tableName, row);
+                        var parameters = row.Table.Columns.Cast<DataColumn>()
+                            .Where(c => c.ColumnName.ToLower() != "id") // Исключаем id
+                            .Select(c => new Npgsql.NpgsqlParameter($"@{c.ColumnName}", row[c.ColumnName]))
+                            .ToList();
+
+                        parameters.Add(new Npgsql.NpgsqlParameter("@id", row["id"]));
+
+                        DatabaseManager.Instance.ExecuteNonQuery(updateQuery, parameters.ToArray());
+                    }
+                }
+
+                MessageBox.Show("Изменения успешно сохранены!", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                // Перезагружаем таблицу для отображения актуальных данных
+                LoadTableFromDatabase(mainWindow, tableName);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при сохранении изменений: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private static string GenerateUpdateQuery(string tableName, DataRow row)
+        {
+            var setClause = string.Join(", ",
+                row.Table.Columns.Cast<DataColumn>()
+                    .Where(c => c.ColumnName.ToLower() != "id") // Исключаем id
+                    .Select(c => $"{c.ColumnName} = @{c.ColumnName}"));
+
+            return $"UPDATE {tableName} SET {setClause} WHERE id = @id;";
+        }
     }
 }

@@ -146,8 +146,17 @@ namespace ShippingCompany
                 string methodName = functionName.Split('.').Last();
 
                 // Добавляем данные в GlobalDictionary
-                GlobalRightsDictionary.Set(methodName.ToLower(), (r, w, e, d));
+                GlobalRightsDictionary.Set(ConvertCamelCaseToSnakeCase(methodName), (r, w, e, d));
             }
+        }
+
+        private static string ConvertCamelCaseToSnakeCase(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return input;
+
+            // Вставляем подчеркивание перед каждой заглавной буквой (кроме первой)
+            return string.Concat(input.Select((x, i) =>
+                i > 0 && char.IsUpper(x) ? "_" + char.ToLower(x) : char.ToLower(x).ToString()));
         }
 
 
