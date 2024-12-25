@@ -115,6 +115,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Classes\Dictionary\GlobalRightsDictionary.cs" />
     <Compile Include="Classes\Hash\Hash.cs" />
     <Compile Include="Classes\Login\LoginLogic.cs" />
     <Compile Include="Classes\Login\User.cs" />

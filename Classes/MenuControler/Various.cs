@@ -9,7 +9,8 @@ namespace ShippingCompany.Classes.MenuControler
     internal class Various
     {
         public void ChangeAccount(MainWindow mainWindow)
-        { 
+        {
+            GlobalRightsDictionary.Clear();
             LoginWindow loginWindow = new LoginWindow();
             loginWindow.Show();
             mainWindow.Close();

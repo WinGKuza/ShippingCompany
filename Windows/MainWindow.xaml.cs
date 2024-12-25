@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using Npgsql;
+using ShippingCompany.Classes.Login;
 using ShippingCompany.Database;
 
 namespace ShippingCompany
@@ -12,6 +13,10 @@ namespace ShippingCompany
     public partial class MainWindow
     {
         public string Username { get; private set; }
+        public bool R { get; private set; } = false;
+        public bool W { get; private set; } = false;
+        public bool E { get; private set; } = false;
+        public bool D { get; private set; } = false;
 
         public MainWindow(string username)
         {
@@ -101,8 +106,46 @@ namespace ShippingCompany
                 var menuItem = CreateMenuItem(childItem, hasChildren);
                 parentMenuItem.Items.Add(menuItem);
 
+                AddPermissionsFromDatabase(childItem.FunctionName, Username);
                 // Рекурсивное добавление дочерних элементов
                 AddChildMenuItems(menuItem, menuItems, childItem.Id);
+            }
+        }
+
+        // Метод для добавления прав доступа в GlobalDictionary из базы данных
+        private void AddPermissionsFromDatabase(string functionName, string username)
+        {
+            if (string.IsNullOrEmpty(functionName) || string.IsNullOrEmpty(username)) return;
+
+            // Запрос для получения прав доступа
+            string query = @"
+        SELECT ur.r, ur.w, ur.e, ur.d 
+        FROM user_rights ur
+        JOIN menu m ON ur.menu_id = m.id
+        JOIN app_user au ON ur.app_user_id = au.id
+        WHERE m.function_name = @functionName AND au.login = @username";
+
+            var parameters = new[]
+            {
+        new NpgsqlParameter("@functionName", functionName),
+        new NpgsqlParameter("@username", username)
+    };
+
+            var dataTable = DatabaseManager.Instance.ExecuteQuery(query, parameters);
+
+            if (dataTable.Rows.Count > 0)
+            {
+                var row = dataTable.Rows[0];
+                bool r = Convert.ToBoolean(row["r"]);
+                bool w = Convert.ToBoolean(row["w"]);
+                bool e = Convert.ToBoolean(row["e"]);
+                bool d = Convert.ToBoolean(row["d"]);
+
+                // Извлекаем имя метода из function_name (например, из "MainTables.Worker" получить "Worker")
+                string methodName = functionName.Split('.').Last();
+
+                // Добавляем данные в GlobalDictionary
+                GlobalRightsDictionary.Set(methodName, (r, w, e, d));
             }
         }
 
