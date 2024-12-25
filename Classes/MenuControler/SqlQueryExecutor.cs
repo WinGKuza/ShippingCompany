@@ -9,10 +9,11 @@ namespace ShippingCompany.Classes
 {
     public static class SqlQueryExecutor
     {
-        public static void ShowSqlQueryInterface(MainWindow mainWindow, string initialQuery = "")
+        public static void ShowSqlQueryInterface(MainWindow mainWindow, string menuItemName, string initialQuery = "")
         {
             // Очистка текущего содержимого
             mainWindow.MainContent.Children.Clear();
+            mainWindow.Title = menuItemName;
 
             // Создаем контейнер для интерфейса
             StackPanel panel = new StackPanel

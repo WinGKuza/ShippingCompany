@@ -123,6 +123,7 @@
     <Compile Include="Classes\MenuControler\Directories.cs" />
     <Compile Include="Classes\MenuControler\Documents.cs" />
     <Compile Include="Classes\MenuControler\Help.cs" />
+    <Compile Include="Classes\MenuControler\HelpExecutor.cs" />
     <Compile Include="Classes\MenuControler\IntermediateTables.cs" />
     <Compile Include="Classes\MenuControler\MainTables.cs" />
     <Compile Include="Classes\MenuControler\MenuActionExecutor.cs" />

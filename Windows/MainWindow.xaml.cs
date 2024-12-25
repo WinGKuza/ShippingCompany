@@ -53,14 +53,14 @@ namespace ShippingCompany
             }
         }
 
-        private int GetUserId(string username)
+        internal int GetUserId(string username)
         {
             string query = "SELECT id FROM app_user WHERE login = @login";
             var result = DatabaseManager.Instance.ExecuteScalar(query, new NpgsqlParameter("@login", username));
             return result != null ? Convert.ToInt32(result) : -1;
         }
 
-        private List<MenuItemData> GetUserMenuItems(int userId)
+        internal List<MenuItemData> GetUserMenuItems(int userId)
         {
             string query = @"
                 SELECT m.id, m.parent_id, m.name, m.function_name 
@@ -166,7 +166,7 @@ namespace ShippingCompany
         }
 
         // Класс для хранения данных об элементах меню
-        private class MenuItemData
+        public class MenuItemData
         {
             public int Id { get; set; }
             public int ParentId { get; set; }
