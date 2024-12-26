@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Data;
+using System.Linq;
+using System.Text;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -36,8 +39,17 @@ namespace ShippingCompany.Classes
             Button executeButton = new Button
             {
                 Content = "Исполнить запрос",
-                Margin = new Thickness(0, 0, 0, 10),
+                Margin = new Thickness(5),
                 HorizontalAlignment = HorizontalAlignment.Center
+            };
+
+            // Кнопка для экспорта в CSV
+            Button exportButton = new Button
+            {
+                Content = "Экспортировать в CSV",
+                Margin = new Thickness(5),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Visibility = Visibility.Collapsed // Скрыта по умолчанию
             };
 
             // Текстовое поле для отображения результатов
@@ -58,6 +70,18 @@ namespace ShippingCompany.Classes
                 Margin = new Thickness(0, 10, 0, 0),
                 Visibility = Visibility.Collapsed
             };
+
+            // Создаем горизонтальную панель для кнопок
+            StackPanel buttonPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 0, 0, 10)
+            };
+
+            // Добавляем кнопки в горизонтальную панель
+            buttonPanel.Children.Add(executeButton);
+            buttonPanel.Children.Add(exportButton);
 
             // Обработчик нажатия кнопки "Исполнить запрос"
             executeButton.Click += (sender, args) =>
@@ -82,12 +106,15 @@ namespace ShippingCompany.Classes
                             dataGrid.ItemsSource = dataTable.DefaultView;
                             dataGrid.Visibility = Visibility.Visible;
                             resultTextBlock.Visibility = Visibility.Collapsed;
+                            exportButton.Visibility = Visibility.Visible;
+                            exportButton.Click += (exportSender, exportArgs) => ExportTableToCsv(dataTable, "export.csv");
                         }
                         else
                         {
                             dataGrid.Visibility = Visibility.Collapsed;
                             resultTextBlock.Text = "Запрос выполнен успешно, но данные отсутствуют.";
                             resultTextBlock.Visibility = Visibility.Visible;
+                            exportButton.Visibility = Visibility.Collapsed;
                         }
                     }
                     else
@@ -97,6 +124,7 @@ namespace ShippingCompany.Classes
                         dataGrid.Visibility = Visibility.Collapsed;
                         resultTextBlock.Text = "Запрос выполнен успешно.";
                         resultTextBlock.Visibility = Visibility.Visible;
+                        exportButton.Visibility = Visibility.Collapsed;
                     }
                 }
                 catch (Exception ex)
@@ -107,12 +135,47 @@ namespace ShippingCompany.Classes
 
             // Добавляем элементы в контейнер
             panel.Children.Add(queryTextBox);
-            panel.Children.Add(executeButton);
+            panel.Children.Add(buttonPanel); // Добавляем горизонтальную панель с кнопками
             panel.Children.Add(dataGrid);
             panel.Children.Add(resultTextBlock);
 
             // Добавляем контейнер в MainContent
             mainWindow.MainContent.Children.Add(panel);
+        }
+
+        private static void ExportTableToCsv(DataTable dataTable, string filePath)
+        {
+            try
+            {
+                if (dataTable == null || dataTable.Rows.Count == 0)
+                {
+                    MessageBox.Show("Нет данных для экспорта.", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Формируем содержимое CSV
+                StringBuilder csvContent = new StringBuilder();
+
+                // Заголовки столбцов
+                string[] columnNames = dataTable.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray();
+                csvContent.AppendLine(string.Join(",", columnNames));
+
+                // Строки данных
+                foreach (DataRow row in dataTable.Rows)
+                {
+                    string[] fields = row.ItemArray.Select(field => field.ToString().Replace(",", "\\,")).ToArray();
+                    csvContent.AppendLine(string.Join(",", fields));
+                }
+
+                // Запись в файл
+                File.WriteAllText(filePath, csvContent.ToString(), Encoding.UTF8);
+
+                MessageBox.Show($"Данные успешно экспортированы в файл {filePath}.", "Успех", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при экспорте данных: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 }
